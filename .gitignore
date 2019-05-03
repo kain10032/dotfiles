@@ -1,0 +1,6 @@
+*.*~
+/.emacs.d/.cask
+/.emacs.d/backup
+/.emacs.d/auto-save-list
+/.emacs.d/ac-comphist.dat
+/.emacs.d/org/*.el

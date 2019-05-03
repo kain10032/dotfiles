@@ -1,0 +1,402 @@
+#+TITLE: .emacs.d/org/init.org
+
+* この設定の動き
+
+.emacs.d/init.el より ./emacs.d/org/init.org の Elisp 部分を読み込む。
+
+依存ライブラリについては Cask 管理している。
+Caskを使える状態にして、.emacs.d ディレクトリで cask install を実行すれば依存ライブラリをインストールできる。
+
+つまり、外部ライブラリを使いたい場合は.emacs.d/Caskに使いたいライブラリを追加し、
+他の設定は全て.emacs.d/org/init.orgに書くというのが基本的な方針。
+
+ただし、ホームディレクトリを設定するときにパスに個人名が書いてあったりする場合があるので、
+そのような個人情報については別にファイルを設けて適宣init.orgからロードする。
+
+
+* 基本設定
+
+** load personal config
+
+ディレクトリパスに個人名とか個人情報が入っていたりするので、これは別ファイルからロードすることにする。
+Git管理する際にpersonal情報に個人情報が入るときはcommitから外す。
+
+設定するべき変数が含まれてない場合はエラーかワーニングを出すようなギミックを入れたい。
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "~/.emacs.d/conf")
+(load "personal")
+#+END_SRC
+
+** global key bindings
+
+全体的に使うキーバインディングを設定する。各言語用のキーバインディングは各言語の設定のところで記述する。
+
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-h") 'delete-backward-char)
+(global-set-key (kbd "C-c t") 'toggle-truncate-lines)
+(global-set-key (kbd "C-z") 'scroll-down-command)
+(global-set-key (kbd "C-t") 'other-window)
+
+;; dired window にいる場合でも C-t で他のウィンドウに飛べるようにする。
+(add-hook 'dired-mode-hook
+    (lambda ()
+        (define-key dired-mode-map (kbd "C-t") 'other-window)))
+
+
+;; Windows の場合、kanjiキーを無効にする。
+(when (eq system-type 'windows-nt)
+  (global-set-key [M-kanji] 'ignore)
+  (global-set-key [kanji] 'ignore))
+
+;; mac の場合、メタキーの位置が押しづらいので押しやすいキーに移動する
+(when (eq system-type 'darwin)
+  (setq ns-command-modifier (quote meta))
+  (setq ns-alternate-modifier (quote super)))
+#+END_SRC
+
+** encoding
+
+日本語のためのエンコード設定。基本的にutf-8を使うようにする。
+
+#+BEGIN_SRC emacs-lisp
+(set-locale-environment nil)
+(set-language-environment "Japanese")
+(set-terminal-coding-system 'utf-8-unix)
+(set-keyboard-coding-system 'utf-8-unix)
+(set-buffer-file-coding-system 'utf-8-unix)
+(setq default-buffer-file-coding-system 'utf-8-unix)
+(prefer-coding-system 'utf-8-unix)
+#+END_SRC
+
+** backup and autosave files
+
+デフォルトだとバックアップファイル(xxx~)やオートセーブファイル(#xxx#)が作業ディレクトリにできて大変うざいので、一か所にまとめる。
+
+#+BEGIN_SRC emacs-lisp
+(setq make-backup-files t) ;; バックアップは実行する
+(setq backup-directory-alist '((".*" . "~/.emacs.d/backup"))) ;; でも格納ディレクトリは移す
+
+(setq auto-save-default t) ;; オートセーブは実行する
+(setq auto-save-file-name-transforms
+      (append auto-save-file-name-transforms
+	      '((".*" "~/.emacs.d/backup/" t)))) ;; でも格納ディレクトリは移す
+(setq delete-auto-save-files t) ;; Emacs終了時にオートセーブファイルを消す
+#+END_SRC
+
+** style
+
+*** theme
+
+以下にテーマギャラリーがあった。
+
+ https://emacsthemes.com/
+
+#+BEGIN_SRC emacs-lisp
+;; TODO cask install で管理したいがなぜかうまくいかない…。ちゃんと入っているはずだが…
+(add-to-list 'custom-theme-load-path "~/.emacs.d/.cask/26.1/elpa/zenburn-theme-20190317.1846")
+(load-theme 'zenburn t)
+
+;; 透かす。alphaが小さいほど透ける
+(if window-system
+    (progn
+        (set-frame-parameter nil 'alpha 90)))
+
+;; 起動時にフルスクリーンにする。
+(set-frame-parameter nil 'fullscreen 'maximized)
+
+#+END_SRC
+
+*** 不要な機能の抑制
+#+BEGIN_SRC emacs-lisp
+;; スタート画面を表示しない
+(setq inhibit-startup-screen t)
+
+;; メニューバーを消す
+;;(menu-bar-mode -1)
+
+;; ツールバーを消す
+(tool-bar-mode -1)
+
+#+END_SRC
+*** ハイライト
+#+BEGIN_SRC emacs-lisp
+;; カーソルの点滅を止める
+(blink-cursor-mode 0)
+
+;; 対応するカッコを光らせる
+(show-paren-mode 1)
+
+;; ウィンドウ内に収まらないときだけカッコ内も光らせる
+(setq show-paren-style 'mixed)
+
+;; 行末の空白を表示する
+;;(setq-default show-trailing-whitespace t)
+
+;;; 現在行を目立たせる
+;;(global-hl-line-mode)
+#+END_SRC
+*** mode-line
+#+BEGIN_SRC emacs-lisp
+;; カーソルの位置表示
+(column-number-mode t) ;; 列数
+(line-number-mode t) ;; 行数
+(global-linum-mode t) ;; 横に行を表示する。
+(setq linum-format "%4d")
+
+;; 時間表示
+(display-time)
+#+END_SRC
+*** スクロール
+#+BEGIN_SRC emacs-lisp
+;; スクロールした際のカーソルの移動行数
+(setq scroll-conservatively 2)
+(setq scroll-step 1)
+
+;; スクロール開始のマージン行数
+(setq scroll-margin 1)
+
+;; 1画面スクロール時に重複させる行数
+;;(setq next-screen-context-lines 10)
+
+;; 1画面スクロール時にカーソルの画面上の位置をなるべく変えない
+(setq scroll-preserve-screen-position t)
+#+END_SRC
+
+*** その他
+#+BEGIN_SRC emacs-lisp
+;; png, jpgなどファイルを画像として表示
+(setq auto-image-file-mode t)
+
+;; 警告音の代わりに画面フラッシュ
+(setq visible-bell t)
+
+;; 警告音もフラッシュもすべて無効（警告音が完全に鳴らなくなるので注意）
+(setq ring-bell-function 'ignore)
+
+;; Emacsからの質問をy/nで回答する
+(fset 'yes-or-no-p 'y-or-n-p)
+
+;; デフォルトで折り返しする
+;;(setq-default truncate-lines nil)
+;;(setq truncate-partial-width-windows 50)
+(toggle-truncate-lines 1)
+#+END_SRC
+
+
+
+* 追加パッケージ
+** cask
+#+BEGIN_SRC emacs-lisp
+(require 'cask "~/.cask/cask.el")
+(cask-initialize)
+#+END_SRC
+** helm
+#+BEGIN_SRC emacs-lisp
+(require 'helm)
+(require 'helm-config)
+
+;; The default "C-x c" is quite close to "C-x C-c", which quits Emacs.
+;; Changed to "C-c h". Note: We must set "C-c h" globally, because we
+;; cannot change `helm-command-prefix-key' once `helm-config' is loaded.
+(global-set-key (kbd "C-c h") 'helm-command-prefix)
+(global-unset-key (kbd "C-x c"))
+
+(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
+(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB work in terminal
+;;(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
+(define-key global-map (kbd "C-;") 'helm-mini)
+(define-key global-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key global-map (kbd "C-x C-f") 'helm-find-files)
+(define-key global-map (kbd "M-x") 'helm-M-x)
+
+;; C-hで前の文字削除
+(define-key helm-map (kbd "C-h") 'delete-backward-char)
+;;(define-key helm-find-files-map (kbd "C-h") 'delete-backward-char)
+
+(when (executable-find "curl")
+  (setq helm-google-suggest-use-curl-p t))
+
+(setq helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
+      helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
+      helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
+      helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
+      helm-ff-file-name-history-use-recentf t
+      helm-echo-input-in-header-line t)
+
+(defun spacemacs//helm-hide-minibuffer-maybe ()
+  "Hide minibuffer in Helm session if we use the header line as input field."
+  (when (with-helm-buffer helm-echo-input-in-header-line)
+    (let ((ov (make-overlay (point-min) (point-max) nil nil t)))
+      (overlay-put ov 'window (selected-window))
+      (overlay-put ov 'face
+                   (let ((bg-color (face-background 'default nil)))
+                     `(:background ,bg-color :foreground ,bg-color)))
+      (setq-local cursor-type nil))))
+
+
+(add-hook 'helm-minibuffer-set-up-hook
+          'spacemacs//helm-hide-minibuffer-maybe)
+
+(setq helm-autoresize-max-height 0)
+(setq helm-autoresize-min-height 20)
+(helm-autoresize-mode 1)
+
+(helm-mode 1)
+#+END_SRC
+** helm-ag
+#+BEGIN_SRC emacs-lisp
+(setq helm-ag-base-command "rg --vimgrep --no-heading")
+(setq helm-ag-insert-at-point 'symbol)
+(global-set-key (kbd "C-M-g") 'helm-ag)
+(global-set-key (kbd "C-M-k") 'backward-kill-sexp)
+#+END_SRC
+** helm-gtags
+#+BEGIN_SRC emacs-lisp
+(require 'helm-gtags)
+(helm-gtags-mode t)
+
+;; bufferの保存に連動して自動アップデートする
+(setq helm-gtags-auto-update t)
+#+END_SRC
+** auto-complete
+#+BEGIN_SRC emacs-lisp
+(require 'auto-complete-config)
+
+(ac-config-default)
+
+;; tabで自動補完
+(ac-set-trigger-key "TAB")
+
+;; auto-complete-mode を起動時に有効にする
+(global-auto-complete-mode t)
+#+END_SRC
+** magit
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-x g") 'magit-status)
+#+END_SRC
+** flycheck
+#+BEGIN_SRC emacs-lisp
+(add-hook 'after-init-hook #'global-flycheck-mode)
+#+END_SRC
+** tramp(remote access)
+遅すぎるので除去
+
+
+
+* 言語ごと設定
+** global config
+#+BEGIN_SRC emacs-lisp
+(setq default-tab-width 2)
+#+END_SRC
+** org-mode
+*** 基本設定
+#+BEGIN_SRC emacs-lisp
+  ;; org-modeのコードブロックでハイライトをつける。
+  (setq org-src-fontify-natively t)
+
+  ;; org-modeでソース編集時もタブの動作をそろえる。
+  ;;(setq org-src-tab-acts-natively t)
+
+  ;; TODO状態
+  (setq org-todo-keywords
+      '((sequence "TODO(t)" "WAIT(w)" "|" "DONE(d)" "SOMEDAY(s)")))
+
+  ;; DONE時刻の記録
+  (setq org-log-done 'time)
+
+  ;; org-agenda
+  (setq org-directory (concat my-work-dir "notes"))
+  (setq org-agenda-files (list org-directory))
+  (add-to-list 'org-agenda-files "~/.emacs.d/config/init.org")
+
+  ;; org-capture
+  (setq org-capture-templates
+        '(("t" "Task" entry (file (expand-file-name (concat org-directory "/todo.org")))
+           "* TODO %?\n  %i\n  %T")
+          ("n" "note" entry (file (expand-file-name (concat org-directory "/notes.org")))
+           "* %?\n  %a\n  %T")
+          ("r" "reading" entry (file (expand-file-name (concat org-directory "/reading.org")))
+           "* %?\n  %a\n  %T")
+          ("d" "diary" entry (file+datetree (expand-file-name (concat org-directory "/diary.org")))
+           "* 勤怠\n- 出勤%?\n- 昼休み\n* daily meeting\n* 日記")
+          ))
+
+#+END_SRC
+*** key bindings
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c l") 'org-store-link)
+(global-set-key (kbd "C-c a") 'org-agenda)
+(global-set-key (kbd "C-c r") 'org-capture)
+#+END_SRC
+
+** Python
+#+BEGIN_SRC emacs-lisp
+;(elpy-enable)
+
+;; 関数折りたたみ
+;(add-hook 'python-mode-hook
+;          '(lambda ()
+;             (hs-minor-mode 1)))
+;(define-key global-map (kbd "C-\\") 'hs-toggle-hiding)
+#+END_SRC
+** YAML
+#+BEGIN_SRC emacs-lisp
+(require 'yaml-mode)
+(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-mode))
+#+END_SRC
+** HTML
+#+BEGIN_SRC emacs-lisp
+(require 'web-mode)
+(add-to-list 'auto-mode-alist '("\\.p?html?\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.cshtml?\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.jsp\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+
+(require 'emmet-mode)
+(add-hook 'sgml-mode-hook 'emmet-mode)
+(add-hook 'css-mode-hook 'emmet-mode)
+(add-hook 'web-mode-hook 'emmet-mode)
+
+#+END_SRC
+** powershell
+#+BEGIN_SRC emacs-lisp
+;;(require 'powershell)
+
+;;(add-to-list 'auto-mode-alist '("\\.ps1\\" . powershell-mode))
+#+END_SRC
+** C#
+#+BEGIN_SRC emacs-lisp
+(require 'csharp-mode)
+
+(require 'flycheck)
+
+(add-hook 'csharp-mode-hook 'omnisharp-mode)
+
+(add-hook 'csharp-mode-hook #'flycheck-mode)
+
+;;(add-to-list 'auto-mode-alist '("\\.cs\\" . csharp-mode))
+#+END_SRC
+** PlantUML
+#+BEGIN_SRC emacs-lisp
+(require 'plantuml-mode)
+
+(add-to-list 'auto-mode-alist '("\\.pu$" . plantuml-mode))
+(setq plantuml-jar-path "C:/tools/plantuml.jar")
+(setq plantuml-java-options "svg")
+(setq plantuml-options "-charset UTF-8")
+#+END_SRC
+** markdown
+#+BEGIN_SRC emacs-lisp
+(require 'markdown-mode)
+(setq auto-mode-alist (cons '("\\.md" . markdown-mode) auto-mode-alist))
+(setq markdown-command "pandoc --self-contained -s --mathjax=https://gist.githubusercontent.com/yohm/0c8ed72b6f18948a2fd3/raw/624defc8ffebb0934ab459854b7b3efc563f6efb/dynoload.js -c https://gist.githubusercontent.com/griffin-stewie/9755783/raw/13cf5c04803102d90d2457a39c3a849a2d2cc04b/github.css --metadata pagetitle=markdown")
+#+END_SRC
+** typescript
+#+BEGIN_SRC emacs-lisp
+(require 'typescript-mode)
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-mode))
+(setq typescript-indent-level 2)
+#+END_SRC
