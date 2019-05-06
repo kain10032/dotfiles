@@ -85,7 +85,6 @@ Git管理する際にpersonal情報に個人情報が入るときはcommitから
 #+END_SRC
 
 ** style
-
 *** theme
 
 以下にテーマギャラリーがあった。
@@ -93,8 +92,6 @@ Git管理する際にpersonal情報に個人情報が入るときはcommitから
  https://emacsthemes.com/
 
 #+BEGIN_SRC emacs-lisp
-;; TODO cask install で管理したいがなぜかうまくいかない…。ちゃんと入っているはずだが…
-(add-to-list 'custom-theme-load-path "~/.emacs.d/.cask/26.1/elpa/zenburn-theme-20190317.1846")
 (load-theme 'zenburn t)
 
 ;; 透かす。alphaが小さいほど透ける
@@ -107,19 +104,42 @@ Git管理する際にpersonal情報に個人情報が入るときはcommitから
 
 #+END_SRC
 
-*** 不要な機能の抑制
+*** custom mode-line
 #+BEGIN_SRC emacs-lisp
-;; スタート画面を表示しない
-(setq inhibit-startup-screen t)
+;; カーソルの位置表示
+(column-number-mode t) ;; 列数
+(line-number-mode t) ;; 行数
 
-;; メニューバーを消す
-;;(menu-bar-mode -1)
+;; 時間表示
+(display-time)
 
-;; ツールバーを消す
-(tool-bar-mode -1)
+;; リージョン内の行数と文字数を表示する。（範囲指定時のみ）
+;; Emacs実戦入門より。
+;; TODO: ただし、default-mode-line-formatがEmacs26以上だと使えないので別の方法を探す必要がある。
+;; default
+(defun count-lines-and-chars ()
+  (if mark-active
+    (format "%d lines, %d chars "
+      (count-lines (region-beginning) (region-end))
+      (- (region-end) (region-beginning)))
+    ""))
+;;(add-hook 'after-init-hook 'count-lines-and-chars)
 
+(global-linum-mode t) ;; 横に行を表示する。
+(setq linum-format "%4d")
 #+END_SRC
-*** ハイライト
+
+*** font
+
+Ricty Diminishedを利用。フォントは以下からダウンロードできる。
+
+https://github.com/edihbrandon/RictyDiminished
+
+#+BEGIN_SRC emacs-lisp
+(set-face-attribute 'default nil :family "Ricty Diminished" :height 120)
+#+END_SRC
+
+*** highlight
 #+BEGIN_SRC emacs-lisp
 ;; カーソルの点滅を止める
 (blink-cursor-mode 0)
@@ -131,21 +151,25 @@ Git管理する際にpersonal情報に個人情報が入るときはcommitから
 (setq show-paren-style 'mixed)
 
 ;; 行末の空白を表示する
-;;(setq-default show-trailing-whitespace t)
+(setq-default show-trailing-whitespace t)
 
 ;;; 現在行を目立たせる
-;;(global-hl-line-mode)
+(global-hl-line-mode t)
 #+END_SRC
-*** mode-line
-#+BEGIN_SRC emacs-lisp
-;; カーソルの位置表示
-(column-number-mode t) ;; 列数
-(line-number-mode t) ;; 行数
-(global-linum-mode t) ;; 横に行を表示する。
-(setq linum-format "%4d")
 
-;; 時間表示
-(display-time)
+*** 不要な機能の抑制
+#+BEGIN_SRC emacs-lisp
+;; スタート画面を表示しない
+(setq inhibit-startup-screen t)
+
+;; GUIのときに出てくる機能の削除
+(when window-system
+  ;; メニューバーを消す
+  (menu-bar-mode -1)
+
+  ;; ツールバーを消す
+  (tool-bar-mode -1))
+
 #+END_SRC
 *** スクロール
 #+BEGIN_SRC emacs-lisp
@@ -165,6 +189,9 @@ Git管理する際にpersonal情報に個人情報が入るときはcommitから
 
 *** その他
 #+BEGIN_SRC emacs-lisp
+;; Tab width
+(setq-default tab-width 4)
+
 ;; png, jpgなどファイルを画像として表示
 (setq auto-image-file-mode t)
 
@@ -186,11 +213,6 @@ Git管理する際にpersonal情報に個人情報が入るときはcommitから
 
 
 * 追加パッケージ
-** cask
-#+BEGIN_SRC emacs-lisp
-(require 'cask "~/.cask/cask.el")
-(cask-initialize)
-#+END_SRC
 ** helm
 #+BEGIN_SRC emacs-lisp
 (require 'helm)

@@ -4,3 +4,5 @@
 /.emacs.d/auto-save-list
 /.emacs.d/ac-comphist.dat
 /.emacs.d/org/*.el
+/.emacs.d/recentf
+/.emacs.d/flycheck_init.el
